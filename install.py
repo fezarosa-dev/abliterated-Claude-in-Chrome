@@ -139,17 +139,18 @@ def generate_icon(icon_path: Path):
     draw = ImageDraw.Draw(overlay)
 
     # White circle background
-    cx, cy, r = 102, 102, 22
+    cx, cy, r = 92, 92, 32
     draw.ellipse([cx - r, cy - r, cx + r, cy + r],
-                 fill=(255, 255, 255, 230), outline=(80, 80, 80, 180), width=2)
+                 fill=(255, 255, 255, 240), outline=(60, 60, 60, 200), width=2)
     # Lock body (green)
-    bx, by = 92, 102
-    draw.rounded_rectangle([bx, by, bx + 20, by + 16], radius=3, fill=(76, 175, 80))
+    bx, by = 78, 90
+    bw, bh = 28, 22
+    draw.rounded_rectangle([bx, by, bx + bw, by + bh], radius=4, fill=(76, 175, 80))
     # Open shackle
-    draw.arc([bx + 4, by - 12, bx + 16, by + 4], start=180, end=350,
-             fill=(76, 175, 80), width=3)
+    draw.arc([bx + 5, by - 18, bx + 23, by + 4], start=180, end=350,
+             fill=(76, 175, 80), width=4)
     # Keyhole
-    draw.ellipse([bx + 8, by + 5, bx + 12, by + 9], fill=(255, 255, 255))
+    draw.ellipse([bx + 11, by + 7, bx + 17, by + 13], fill=(255, 255, 255))
 
     Image.alpha_composite(img, overlay).save(icon_path)
 
