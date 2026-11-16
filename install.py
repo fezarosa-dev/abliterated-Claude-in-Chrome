@@ -176,7 +176,10 @@ def main():
         print("\nMultiple installations found:")
         for i, (name, path) in enumerate(found):
             print(f"  [{i + 1}] {name} — {path}")
-        choice = input("Choose [1]: ").strip() or "1"
+        try:
+            choice = input("Choose [1]: ").strip() or "1"
+        except EOFError:
+            choice = "1"
         browser_name, ext_dir = found[int(choice) - 1]
 
     latest = get_latest_version(ext_dir)
