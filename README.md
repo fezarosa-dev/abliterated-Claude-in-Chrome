@@ -13,6 +13,14 @@ If you have the original "Claude" extension installed, **remove it first** (they
 
 Done. The patched version appears as **"Claude (Unblocked)"** with an unlock badge on the icon.
 
+## Per-site control
+
+Click the extension icon to open the popup:
+
+- **Toggle** — allow or block any site individually
+- **Open Side Panel** — opens Claude's chat panel
+- All sites are **allowed by default**. Blocking a site re-enables Anthropic's original restrictions for that site only.
+
 ## Updating
 
 A GitHub Action checks daily for new versions and publishes a new release automatically. To update:
