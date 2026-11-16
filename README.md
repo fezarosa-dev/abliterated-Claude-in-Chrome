@@ -6,7 +6,13 @@ By default, Claude in Chrome blocks interaction with certain websites (Reddit, s
 
 ## Quick start
 
-### 1. Install
+### 1. Prerequisites
+
+- **Claude in Chrome** installed from the [Chrome Web Store](https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbvcdhcgfn)
+- **Python 3.9+**
+- *(optional)* `pip install Pillow` — adds an unlock badge to the icon
+
+### 2. Install
 
 ```bash
 git clone https://github.com/fezarosa-dev/abliterated-Claude-in-Chrome.git
@@ -14,50 +20,41 @@ cd abliterated-Claude-in-Chrome
 python install.py
 ```
 
-> **Optional:** `pip install Pillow` for a custom icon with an unlock badge.
-
-### 2. Load in Chrome
+### 3. Load in Chrome
 
 1. Go to `chrome://extensions/`
-2. Enable **Developer mode** (top right toggle)
-3. Click **Load unpacked** → select the `LOAD-THIS-IN-CHROME/` folder (it opens automatically after install)
-4. **Disable** the original "Claude" extension (toggle it off — don't uninstall it)
+2. **Remove** the original "Claude" extension (click "Remove" — they can't coexist)
+3. Enable **Developer mode** (top right toggle)
+4. Click **Load unpacked** → select the `LOAD-THIS-IN-CHROME/` folder (it opens automatically after install)
 
 Done. The patched version appears as **"Claude (Unblocked)"** with an unlock badge on the icon.
 
-## Important: why you need both extensions
+## How updating works
+
+The original and patched extensions share the same ID — Chrome can't have both at once. So the update cycle is:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  Chrome Web Store                                   │
-│  ┌───────────────────┐                              │
-│  │ Claude (original) │ ← receives auto-updates      │
-│  │ DISABLED          │ ← but stays off              │
-│  └───────────────────┘                              │
-│              │ install.py copies & patches           │
-│              ▼                                      │
-│  ┌───────────────────┐                              │
-│  │ Claude (Unblocked)│ ← the one you actually use    │
-│  │ ENABLED (unpacked)│ ← loaded from LOAD-THIS-IN-  │
-│  │                   │   CHROME/ folder              │
-│  └───────────────────┘                              │
-└─────────────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────────────────┐
+  │                                                          │
+  │  FIRST TIME                                              │
+  │  ══════════                                              │
+  │  Claude (original) ──install.py──▶ Claude (Unblocked)    │
+  │  installed from          │         loaded as unpacked     │
+  │  Web Store               │                                │
+  │                          ▼                                │
+  │                    Remove original                        │
+  │                                                          │
+  │  UPDATING                                                │
+  │  ════════                                                │
+  │  1. Install original from Web Store again                │
+  │  2. python install.py                                    │
+  │  3. Remove original                                      │
+  │  4. Reload patched in chrome://extensions/               │
+  │                                                          │
+  └──────────────────────────────────────────────────────────┘
 ```
 
-- **Keep the original installed but disabled.** Chrome still updates it in the background even when disabled. This is your source for new versions.
-- **Only one can be active at a time** — both share the same extension ID, so Chrome won't load them simultaneously.
-- The patched version is a local copy that Chrome doesn't auto-update, so your patch stays intact.
-
-## Updating
-
-When Anthropic releases a new version of Claude in Chrome:
-
-```bash
-cd abliterated-Claude-in-Chrome
-python install.py
-```
-
-The script detects the new version automatically, copies it, and re-applies the patch. Then reload the extension in Chrome (click the ↻ icon on the extension card).
+You only need the original installed **during the install.py step** — it's the source the script copies from. After that, remove it and use the patched one.
 
 Use `--force` to reinstall even if the version hasn't changed:
 
@@ -75,15 +72,9 @@ python install.py --force
 
 Linux: standard, Flatpak, and Snap installations all supported.
 
-### Requirements
-
-- **Chrome** (or Chromium/Brave/Edge) with **Claude in Chrome** installed from the Web Store
-- **Python 3.9+**
-- **Pillow** *(optional)*: `pip install Pillow` — adds an unlock badge to the icon
-
 ## How it works
 
-The installer copies your installed extension and injects a fetch interceptor at the top of `service-worker-loader.js` — the service worker entry point:
+The installer copies your installed extension and injects a fetch interceptor at the top of `service-worker-loader.js`:
 
 ```js
 const _fetch = globalThis.fetch;
@@ -98,23 +89,20 @@ globalThis.fetch = function(url, opts) {
 };
 ```
 
-**What this does:** When the extension checks if a site is allowed (via `POST /api/web/url_hash_check/browser_extension`), the interceptor returns "allowed" (`category0`) immediately without calling Anthropic's server. All other API calls (chat, auth, etc.) pass through untouched.
+When the extension checks if a site is allowed (`POST /api/web/url_hash_check/browser_extension`), the interceptor returns "allowed" immediately without calling Anthropic's server. All other API calls pass through untouched.
 
-**Why it's resilient:** The patch lives in the service worker entry point — a small, stable file — not in the minified JS chunks that change names and contents with every update. Running `install.py` after an update re-applies the same 10-line interceptor to the new version.
+The patch lives in the service worker entry point — a small, stable file — not in minified chunks. Running `install.py` after an update re-applies the same interceptor to the new version.
 
 ## FAQ
 
-**Q: Can I use both extensions at the same time?**
-No. They share the same extension ID. Keep the original disabled, use the patched one.
+**Q: Why can't I keep both installed?**
+Both share the same extension ID. Chrome allows only one extension per ID. You must remove the original before loading the patched one.
 
 **Q: Will the patched version update automatically?**
-No. That's the point — automatic updates would overwrite the patch. Run `python install.py` when you want to pull in a new version.
-
-**Q: What if I uninstall the original?**
-You lose the source for updates. The patched version keeps working, but you'll need to reinstall the original from the Web Store when you want to update.
+No — that's the point. Auto-updates would overwrite the patch. When you want a new version, install the original from the Web Store, run `install.py`, then remove the original.
 
 **Q: Is this safe?**
-The patch only changes how site categories are checked. All other functionality (chat, auth, side panel) works identically to the original. The interceptor is 10 lines of transparent code you can read above.
+The patch only changes how site categories are checked. All other functionality (chat, auth, side panel) works identically to the original. The interceptor is 10 lines of readable code shown above.
 
 ## Disclaimer
 
