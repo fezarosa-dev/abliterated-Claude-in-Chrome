@@ -20,7 +20,7 @@ python install.py
 
 1. Go to `chrome://extensions/`
 2. Enable **Developer mode** (top right toggle)
-3. Click **Load unpacked** → select the `patched-extension/` folder created by the installer
+3. Click **Load unpacked** → select the `LOAD-THIS-IN-CHROME/` folder (it opens automatically after install)
 4. **Disable** the original "Claude" extension (toggle it off — don't uninstall it)
 
 Done. The patched version appears as **"Claude (Unblocked)"** with an unlock badge on the icon.
@@ -37,8 +37,9 @@ Done. The patched version appears as **"Claude (Unblocked)"** with an unlock bad
 │              │ install.py copies & patches           │
 │              ▼                                      │
 │  ┌───────────────────┐                              │
-│  │ Claude (Unblocked)│ ← the one you actually use   │
-│  │ ENABLED (unpacked)│ ← all sites unlocked         │
+│  │ Claude (Unblocked)│ ← the one you actually use    │
+│  │ ENABLED (unpacked)│ ← loaded from LOAD-THIS-IN-  │
+│  │                   │   CHROME/ folder              │
 │  └───────────────────┘                              │
 └─────────────────────────────────────────────────────┘
 ```

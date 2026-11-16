@@ -157,7 +157,7 @@ def generate_icon(icon_path: Path):
 def main():
     force = "--force" in sys.argv
     script_dir = Path(__file__).resolve().parent
-    dest = script_dir / "patched-extension"
+    dest = script_dir / "LOAD-THIS-IN-CHROME"
     hash_file = script_dir / ".current-hash"
 
     print("Abliterated Claude in Chrome — Installer")
@@ -208,11 +208,29 @@ def main():
     print("  1. Open chrome://extensions/")
     print("  2. Enable 'Developer mode' (top right)")
     print("  3. Click 'Load unpacked'")
-    print(f"  4. Select: {dest}")
+    print(f"  4. Select the folder that just opened (or navigate to):")
+    print(f"     {dest}")
     print("  5. Disable the original 'Claude' extension")
     print()
     print("To update after Chrome updates the original:")
     print(f"  python {Path(__file__).name}")
+
+    open_folder(dest)
+
+
+def open_folder(path: Path):
+    """Open folder in the system file manager."""
+    import subprocess
+    system = platform.system()
+    try:
+        if system == "Linux":
+            subprocess.Popen(["xdg-open", str(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif system == "Darwin":
+            subprocess.Popen(["open", str(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif system == "Windows":
+            subprocess.Popen(["explorer", str(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        pass
 
 
 if __name__ == "__main__":
