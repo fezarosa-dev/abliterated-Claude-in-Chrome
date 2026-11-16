@@ -1,3 +1,5 @@
 LOAD-THIS-IN-CHROME/
 patched-extension/
+build/
+*.zip
 .current-hash

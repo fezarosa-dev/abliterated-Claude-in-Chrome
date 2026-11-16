@@ -1,0 +1,72 @@
+name: Update patched extension
+
+on:
+  schedule:
+    - cron: '0 8 * * *' # daily at 08:00 UTC
+  workflow_dispatch: # manual trigger
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install Pillow
+
+      - name: Download extension from Chrome Web Store
+        run: python build.py download
+
+      - name: Patch extension
+        run: python build.py patch
+
+      - name: Check if version changed
+        id: check
+        run: |
+          NEW_VERSION=$(python build.py version)
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+          # Check if release already exists
+          if gh release view "v$NEW_VERSION" &>/dev/null; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Version $NEW_VERSION already released"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "New version: $NEW_VERSION"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Create release ZIP
+        if: steps.check.outputs.changed == 'true'
+        run: python build.py zip
+
+      - name: Publish release
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          VERSION="${{ steps.check.outputs.version }}"
+          gh release create "v${VERSION}" \
+            --title "Claude (Unblocked) v${VERSION}" \
+            --notes "Patched version of Claude in Chrome v${VERSION} with all sites unlocked.
+
+          ## Install
+          1. Download \`claude-unblocked-v${VERSION}.zip\` below
+          2. Extract the ZIP
+          3. Open \`chrome://extensions/\` → enable Developer mode
+          4. Click \"Load unpacked\" → select the extracted folder
+          5. Remove the original Claude extension if installed
+
+          ## What's changed from the original
+          - All site restrictions removed (Reddit, social media, etc. all work)
+          - Extension renamed to \"Claude (Unblocked)\" with unlock badge icon
+          - No other changes — chat, auth, side panel all work identically" \
+            "claude-unblocked-v${VERSION}.zip"
+        env:
+          GH_TOKEN: ${{ github.token }}
