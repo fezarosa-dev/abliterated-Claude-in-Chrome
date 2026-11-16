@@ -4,19 +4,9 @@ Removes site restrictions from the [Claude in Chrome](https://chromewebstore.goo
 
 By default, Claude in Chrome blocks interaction with certain websites (Reddit, social media, etc.) via a server-side category check. This tool patches the extension locally so it works on **all sites**.
 
-## How it works
+## Quick start
 
-The installer copies your installed Claude in Chrome extension, injects a 10-line fetch interceptor into the service worker entry point, and outputs a patched extension you load as "unpacked" in Chrome. No files are modified in the original extension.
-
-The interceptor replaces the server-side URL category check (`/api/web/url_hash_check/`) with an immediate `category0` (allowed) response. Everything else works exactly like the original.
-
-## Requirements
-
-- **Chrome** (or Chromium, Brave, Edge) with **Claude in Chrome** installed from the Web Store
-- **Python 3.9+**
-- **Pillow** *(optional, for the custom icon)*: `pip install Pillow`
-
-## Install
+### 1. Install
 
 ```bash
 git clone https://github.com/fezarosa-dev/abliterated-Claude-in-Chrome.git
@@ -24,24 +14,49 @@ cd abliterated-Claude-in-Chrome
 python install.py
 ```
 
-Then in Chrome:
+> **Optional:** `pip install Pillow` for a custom icon with an unlock badge.
+
+### 2. Load in Chrome
 
 1. Go to `chrome://extensions/`
 2. Enable **Developer mode** (top right toggle)
-3. Click **Load unpacked** → select the `patched-extension/` folder
-4. **Disable** the original "Claude" extension (keep it installed for updates)
+3. Click **Load unpacked** → select the `patched-extension/` folder created by the installer
+4. **Disable** the original "Claude" extension (toggle it off — don't uninstall it)
 
-That's it. The patched extension appears as **"Claude (Unblocked)"** with an unlock badge on the icon.
+Done. The patched version appears as **"Claude (Unblocked)"** with an unlock badge on the icon.
 
-## Update
+## Important: why you need both extensions
 
-When the original extension updates via the Web Store, just run the installer again:
+```
+┌─────────────────────────────────────────────────────┐
+│  Chrome Web Store                                   │
+│  ┌───────────────────┐                              │
+│  │ Claude (original) │ ← receives auto-updates      │
+│  │ DISABLED          │ ← but stays off              │
+│  └───────────────────┘                              │
+│              │ install.py copies & patches           │
+│              ▼                                      │
+│  ┌───────────────────┐                              │
+│  │ Claude (Unblocked)│ ← the one you actually use   │
+│  │ ENABLED (unpacked)│ ← all sites unlocked         │
+│  └───────────────────┘                              │
+└─────────────────────────────────────────────────────┘
+```
+
+- **Keep the original installed but disabled.** Chrome still updates it in the background even when disabled. This is your source for new versions.
+- **Only one can be active at a time** — both share the same extension ID, so Chrome won't load them simultaneously.
+- The patched version is a local copy that Chrome doesn't auto-update, so your patch stays intact.
+
+## Updating
+
+When Anthropic releases a new version of Claude in Chrome:
 
 ```bash
+cd abliterated-Claude-in-Chrome
 python install.py
 ```
 
-Then reload the extension in `chrome://extensions/` (click the refresh icon on the card).
+The script detects the new version automatically, copies it, and re-applies the patch. Then reload the extension in Chrome (click the ↻ icon on the extension card).
 
 Use `--force` to reinstall even if the version hasn't changed:
 
@@ -57,11 +72,17 @@ python install.py --force
 | macOS    | ✅     | ✅       | ✅    | ✅   |
 | Windows  | ✅     | ✅       | ✅    | ✅   |
 
-Flatpak and Snap Chrome installations on Linux are also supported.
+Linux: standard, Flatpak, and Snap installations all supported.
 
-## How it works (technical)
+### Requirements
 
-The patch adds a fetch interceptor at the top of `service-worker-loader.js`:
+- **Chrome** (or Chromium/Brave/Edge) with **Claude in Chrome** installed from the Web Store
+- **Python 3.9+**
+- **Pillow** *(optional)*: `pip install Pillow` — adds an unlock badge to the icon
+
+## How it works
+
+The installer copies your installed extension and injects a fetch interceptor at the top of `service-worker-loader.js` — the service worker entry point:
 
 ```js
 const _fetch = globalThis.fetch;
@@ -76,13 +97,27 @@ globalThis.fetch = function(url, opts) {
 };
 ```
 
-This intercepts the category check API call before it reaches Anthropic's server and returns an "allowed" response. All other API calls (chat, authentication, etc.) pass through untouched.
+**What this does:** When the extension checks if a site is allowed (via `POST /api/web/url_hash_check/browser_extension`), the interceptor returns "allowed" (`category0`) immediately without calling Anthropic's server. All other API calls (chat, auth, etc.) pass through untouched.
 
-The patch is applied to the service worker entry point — not to minified chunk files — so it survives extension updates without needing to find renamed functions in re-minified code.
+**Why it's resilient:** The patch lives in the service worker entry point — a small, stable file — not in the minified JS chunks that change names and contents with every update. Running `install.py` after an update re-applies the same 10-line interceptor to the new version.
+
+## FAQ
+
+**Q: Can I use both extensions at the same time?**
+No. They share the same extension ID. Keep the original disabled, use the patched one.
+
+**Q: Will the patched version update automatically?**
+No. That's the point — automatic updates would overwrite the patch. Run `python install.py` when you want to pull in a new version.
+
+**Q: What if I uninstall the original?**
+You lose the source for updates. The patched version keeps working, but you'll need to reinstall the original from the Web Store when you want to update.
+
+**Q: Is this safe?**
+The patch only changes how site categories are checked. All other functionality (chat, auth, side panel) works identically to the original. The interceptor is 10 lines of transparent code you can read above.
 
 ## Disclaimer
 
-This tool modifies a commercial extension for personal use. It bypasses an intentional safety classification by Anthropic. Use at your own discretion.
+This tool modifies a commercial extension for personal use. It bypasses an intentional site classification by Anthropic. Use at your own discretion.
 
 ## License
 
