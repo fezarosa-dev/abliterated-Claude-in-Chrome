@@ -19,10 +19,22 @@ EXTENSION_ID = "fcoeoabgfenejglbffodgkkbkcdhcgfn"
 PATCHED_NAME = "Claude (Unblocked)"
 
 FETCH_INTERCEPTOR = """\
-// Intercepts site category check — unlocks all sites
+// Site unblock with per-site blocklist support
 const _fetch = globalThis.fetch;
+let _blockedSites = new Set();
+chrome.storage.local.get({blockedSites: []}, r => { _blockedSites = new Set(r.blockedSites); });
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.blockedSites)
+    _blockedSites = new Set(changes.blockedSites.newValue || []);
+});
 globalThis.fetch = function(url, opts) {
   if (String(url).includes('/api/web/url_hash_check/')) {
+    try {
+      const body = typeof opts?.body === 'string' ? JSON.parse(opts.body) : {};
+      const host = body.url ? new URL(body.url).hostname.replace(/^www\\\\./, '') : '';
+      if (host && _blockedSites.has(host))
+        return _fetch.apply(this, arguments);
+    } catch(e) {}
     return Promise.resolve(new Response(JSON.stringify({category: "category0"}), {
       status: 200, headers: {"Content-Type": "application/json"}
     }));
@@ -117,6 +129,19 @@ def patch_extension(source: Path, dest: Path):
     content = loader_path.read_text(encoding="utf-8")
     if "/api/web/url_hash_check/" not in content:
         loader_path.write_text(FETCH_INTERCEPTOR + content, encoding="utf-8")
+
+    # Copy popup files
+    patch_files = Path(__file__).parent / "patch-files"
+    if patch_files.exists():
+        for f in patch_files.iterdir():
+            shutil.copy2(f, dest / f.name)
+
+    # Add popup to manifest action
+    with open(manifest_path) as f:
+        manifest = json.load(f)
+    manifest.setdefault("action", {})["default_popup"] = "popup.html"
+    with open(manifest_path, "w") as f:
+        json.dump(manifest, f, indent=3)
 
     # Generate icon with unlock badge
     generate_icon(dest / "icon-128.png")
