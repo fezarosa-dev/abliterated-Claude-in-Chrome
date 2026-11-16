@@ -88,7 +88,7 @@ Yes. Clone the repo and run `python build.py download && python build.py patch`.
 
 ## Disclaimer
 
-This tool modifies a commercial extension for personal use. It bypasses an intentional site restriction by Anthropic. Use at your own discretion.
+This is a proof of concept. It modifies a commercial extension for personal and educational use. It bypasses an intentional site restriction by Anthropic. Use at your own discretion.
 
 ## License
 
