@@ -82,6 +82,10 @@ The patch only changes how site categories are checked — 10 lines of readable 
 **Q: Can I build it myself instead of trusting the release?**
 Yes. Clone the repo and run `python build.py download && python build.py patch`. The patched extension is in `build/patched/`.
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=fezarosa-dev/abliterated-Claude-in-Chrome&type=Date)](https://star-history.com/#fezarosa-dev/abliterated-Claude-in-Chrome&Date)
+
 ## Disclaimer
 
 This tool modifies a commercial extension for personal use. It bypasses an intentional site restriction by Anthropic. Use at your own discretion.
