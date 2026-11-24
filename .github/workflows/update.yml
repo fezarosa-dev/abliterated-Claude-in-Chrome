@@ -70,3 +70,27 @@ jobs:
             "claude-unblocked-v${VERSION}.zip"
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Track released version
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          VERSION="${{ steps.check.outputs.version }}"
+          TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+          python3 -c "
+          import json, os
+          path = 'state.json'
+          state = json.load(open(path)) if os.path.exists(path) else {'released_versions': []}
+          if '$VERSION' not in state['released_versions']:
+              state['released_versions'].append('$VERSION')
+          state['last_release'] = '$TIMESTAMP'
+          json.dump(state, open(path, 'w'), indent=2)
+          "
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: track release v${VERSION}"
+            git push
+          fi
